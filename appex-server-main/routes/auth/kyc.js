@@ -1,33 +1,24 @@
 const express = require('express');
+const router = express.Router();
 const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-var router = express.Router();
-
-
-const app = express();
-const port = process.env.PORT || 3000;
-
-// Connect to MongoDB (Make sure to replace 'your_database_uri' with your actual MongoDB URI)
-mongoose.connect("mongodb+srv://Harcourt:eckankar2757101@testcluster.hlwy0.gcp.mongodb.net/dekmaroptions?retryWrites=true&w=majority",
- { useNewUrlParser: true, useUnifiedTopology: true });
 
 // Create a MongoDB model for storing image URLs
 const Image = mongoose.model('Image', {
   imageUrl: String,
-  owner:String,
-  docNum:String,
+  owner: String,
+  docNum: String,
 });
 
 // Middleware to parse JSON in requests
-router.use(bodyParser.json());
+router.use(express.json());
 
 // Endpoint to store image URL
 router.post('/kyc', async (req, res) => {
   try {
-    const { imageUrl,owner,docNum } = req.body;
+    const { imageUrl, owner, docNum } = req.body;
 
     // Create a new document in the 'images' collection
-    const image = new Image({ imageUrl,owner,docNum });
+    const image = new Image({ imageUrl, owner, docNum });
     await image.save();
 
     res.status(201).json({ message: 'Image URL stored successfully' });
@@ -37,54 +28,37 @@ router.post('/kyc', async (req, res) => {
   }
 });
 
-router.post('/kyc2', async (req, res) => {
+// Generic endpoint to handle 'kyc2' and 'kyc3' logic
+router.post('/kyc/:type', async (req, res) => {
   try {
-    const { imageUrl2 } = req.body;
-const imageUrl=imageUrl2
-    // Create a new document in the 'images' collection
-    const image = new Image({ imageUrl});
-    await image.save();
+    const { type } = req.params;
+    const imageUrlKey = `imageUrl${type.slice(-1)}`; // Determines if it's kyc2 or kyc3
+    const imageUrl = req.body[imageUrlKey];
 
-    res.status(201).json({ message: 'Image URL stored successfully' });
-  } catch (error) {
-    console.error('Error storing image URL:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-router.post('/kyc3', async (req, res) => {
-  try {
-    const { imageUrl3 } = req.body;
-    const imageUrl=imageUrl3
+    if (!imageUrl) {
+      return res.status(400).json({ error: 'Invalid image URL' });
+    }
 
     // Create a new document in the 'images' collection
     const image = new Image({ imageUrl });
     await image.save();
 
-    res.status(201).json({ message: 'Image URL stored successfully' });
+    res.status(201).json({ message: `Image URL ${imageUrlKey} stored successfully` });
   } catch (error) {
     console.error('Error storing image URL:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-
-
-  
-  // Endpoint for fetching images
-  router.get('/kyc/fetch-images', async (req, res) => {
-    try {
-      const images = await Image.find();
-      res.json(images);
-    } catch (error) {
-      console.error('Error fetching images:', error);
-      res.status(500).send('Internal Server Error');
-    }
-  });
-
-// Start the server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+// Endpoint for fetching images
+router.get('/kyc/fetch-images', async (req, res) => {
+  try {
+    const images = await Image.find();
+    res.json(images);
+  } catch (error) {
+    console.error('Error fetching images:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 module.exports = router;
